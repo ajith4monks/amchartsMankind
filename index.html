@@ -16,46 +16,115 @@
 <!-- Chart code -->
 <script>
   am5.ready(function () {
-    // Create root and chart
     var root = am5.Root.new('chartdiv')
-
-    // Set themes
     root.setThemes([am5themes_Animated.new(root)])
 
-    // ====================================
-    // Create map
-    // ====================================
-
-    var map = root.container.children.push(
-      am5map.MapChart.new(root, {
-        panX: 'none',
-        projection: am5map.geoNaturalEarth1(),
-      })
-    )
-
-    // Create polygon series
-    var polygonSeries = map.series.push(
-      am5map.MapPolygonSeries.new(root, {
-        geoJSON: am5geodata_continentsLow,
-        exclude: ['antarctica'],
-        fill: am5.color(0xbbbbbb),
-        toggleKey: 'active',
-        interactive: true,
-      })
-    )
-
-    var pointSeries = map.series.push(am5map.MapPointSeries.new(root, {}))
-
+    var map = createMap(root)
+    var pointSeries = createPointSeries(root, map)
     var colorSet = am5.ColorSet.new(root, { step: 2 })
 
-    map.chartContainer.get('background').events.on('click', function () {
-      map.goHome()
-      pointSeries.show()
-    })
+    setupMapEvents(map, pointSeries)
+    addDataToSeries(pointSeries)
 
-    pointSeries.bullets.push(function (root, series, dataItem) {
+    map.appear(1000, 100)
+
+    // Function to create the map
+    function createMap(root) {
+      return root.container.children.push(
+        am5map.MapChart.new(root, {
+          panX: 'none',
+          projection: am5map.geoNaturalEarth1(),
+        })
+      )
+    }
+
+    // Function to create point series
+    function createPointSeries(root, map) {
+      var polygonSeries = map.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_continentsLow,
+          exclude: ['antarctica'],
+          fill: am5.color(0xbbbbbb),
+          toggleKey: 'active',
+          interactive: true,
+        })
+      )
+
+      var pointSeries = map.series.push(am5map.MapPointSeries.new(root, {}))
+      pointSeries.bullets.push(function (root, series, dataItem) {
+        return createBullet(root, map, dataItem, colorSet)
+      })
+
+      return pointSeries
+    }
+
+    // Function to setup map events
+    function setupMapEvents(map, pointSeries) {
+      map.chartContainer.get('background').events.on('click', function () {
+        var infoBox = document.getElementById('infoBox')
+        if (infoBox) {
+          infoBox.remove()
+        }
+        map.goHome()
+        pointSeries.show()
+      })
+    }
+
+    // Function to add data to point series
+    function addDataToSeries(pointSeries) {
+      var data = [
+        {
+          title: 'United States',
+          name: 'United States',
+          latitude: 39.563353,
+          longitude: -99.316406,
+          width: 100,
+          height: 100,
+          value: 12,
+        },
+        {
+          title: 'European Union',
+          name: 'European Union',
+          latitude: 50.896104,
+          longitude: 19.160156,
+          width: 50,
+          height: 50,
+          value: 15,
+        },
+        {
+          title: 'Asia',
+          name: 'Asia',
+          latitude: 47.212106,
+          longitude: 103.183594,
+          width: 80,
+          height: 80,
+          value: 8,
+        },
+        {
+          title: 'Africa',
+          name: 'Africa',
+          latitude: 11.081385,
+          longitude: 21.621094,
+          width: 50,
+          height: 50,
+          value: 5,
+        },
+      ]
+
+      data.forEach(function (d) {
+        pointSeries.data.push({
+          geometry: { type: 'Point', coordinates: [d.longitude, d.latitude] },
+          title: d.title,
+          value: d.value,
+        })
+      })
+    }
+
+    // Function to create bullets
+    function createBullet(root, map, dataItem, colorSet) {
       var value = dataItem.dataContext.value
       var coordinates = dataItem.dataContext.geometry.coordinates
+      var title = dataItem.dataContext.title
 
       var container = am5.Container.new(root, {})
       var color = colorSet.next()
@@ -77,21 +146,17 @@
           true,
           1500
         )
-        pointSeries.bullets.each(function (bullet) {
-          if (bullet.dataItem !== dataItem) {
-            bullet.hide()
-          }
-        })
+        createInfoBox(title, value)
       })
 
-      var pole = container.children.push(
+      container.children.push(
         am5.Line.new(root, {
           stroke: color,
           height: -40,
         })
       )
 
-      var label = container.children.push(
+      container.children.push(
         am5.Label.new(root, {
           text: value + '%',
           fill: am5.color(0xffffff),
@@ -102,7 +167,7 @@
         })
       )
 
-      var titleLabel = container.children.push(
+      container.children.push(
         am5.Label.new(root, {
           text: dataItem.dataContext.title,
           fill: color,
@@ -117,61 +182,31 @@
       return am5.Bullet.new(root, {
         sprite: container,
       })
-    })
-
-    // ====================================
-    // Create pins
-    // ====================================
-
-    var data = [
-      {
-        title: 'United States',
-        name: 'United States',
-        latitude: 39.563353,
-        longitude: -99.316406,
-        width: 100,
-        height: 100,
-        value: 12,
-      },
-      {
-        title: 'European Union',
-        name: 'European Union',
-        latitude: 50.896104,
-        longitude: 19.160156,
-        width: 50,
-        height: 50,
-        value: 15,
-      },
-      {
-        title: 'Asia',
-        name: 'Asia',
-        latitude: 47.212106,
-        longitude: 103.183594,
-        width: 80,
-        height: 80,
-        value: 8,
-      },
-      {
-        title: 'Africa',
-        name: 'Africa',
-        latitude: 11.081385,
-        longitude: 21.621094,
-        width: 50,
-        height: 50,
-        value: 5,
-      },
-    ]
-
-    for (var i = 0; i < data.length; i++) {
-      var d = data[i]
-      pointSeries.data.push({
-        geometry: { type: 'Point', coordinates: [d.longitude, d.latitude] },
-        title: d.title,
-        value: d.value,
-      })
     }
 
-    map.appear(1000, 100)
+    // Function to create info box
+    function createInfoBox(title, value) {
+      var existingInfoBox = document.getElementById('infoBox')
+      if (existingInfoBox) {
+        existingInfoBox.remove()
+      }
+
+      var fragment = document.createDocumentFragment()
+      var infoBox = document.createElement('div')
+      infoBox.id = 'infoBox'
+      infoBox.style.position = 'absolute'
+      infoBox.style.left = '10px'
+      infoBox.style.top = '10px'
+      infoBox.style.padding = '10px'
+      infoBox.style.background = 'white'
+      infoBox.style.border = '1px solid black'
+      infoBox.style.borderRadius = '5px'
+      infoBox.innerHTML =
+        '<strong>' + title + '</strong><br>' + value + '% of something'
+
+      fragment.appendChild(infoBox)
+      document.body.appendChild(fragment)
+    }
   }) // end am5.ready()
 </script>
 
