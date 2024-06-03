@@ -1,0 +1,76 @@
+@import url(https://fonts.googleapis.com/css?family=Inter:100,200,300,regular,500,600,700,800,900);
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Open Sans', sans-serif;
+}
+#chartdiv {
+  width: 100%;
+  height: 90vh;
+}
+#chartdiv .am5-modal {
+  inset: 0;
+  position: fixed;
+  width: 490px;
+  left: unset;
+  top: 0;
+  right: 0;
+  background-color: #081997;
+  z-index: 21;
+  transform: translate3d(0, 0, 0);
+  box-shadow: rgba(0, 0, 0, 0.45) 0px 0px 36px 0px;
+  transition: 0.44s;
+}
+#chartdiv .am5-modal.open .am5-modal-content {
+  padding: 30px;
+  transform: translate3d(0, 0, 0);
+  box-shadow: none;
+}
+#chartdiv .am5-modal-wrapper {
+  position: relative;
+  background-color: unset;
+}
+#chartdiv .am5-modal-curtain,
+#chartdiv .am5-modal-wrapper::before {
+  display: none;
+}
+
+@media screen and (min-width: 650px) {
+  #chartdiv .am5-modal {
+    width: 330px;
+  }
+  #chartdiv .am5-modal .am5-modal-content {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    color: white;
+    background-color: unset;
+  }
+}
+.am5-modal-curtain {
+  display: none;
+}
+
+.am5-modal-close::before {
+  content: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.03125 8.00391C9.27734 8.27734 9.27734 8.6875 9.03125 8.93359C8.75781 9.20703 8.34766 9.20703 8.10156 8.93359L4.875 5.67969L1.62109 8.93359C1.34766 9.20703 0.9375 9.20703 0.691406 8.93359C0.417969 8.6875 0.417969 8.27734 0.691406 8.00391L3.94531 4.75L0.691406 1.49609C0.417969 1.22266 0.417969 0.8125 0.691406 0.566406C0.9375 0.292969 1.34766 0.292969 1.59375 0.566406L4.875 3.84766L8.12891 0.59375C8.375 0.320312 8.78516 0.320312 9.03125 0.59375C9.30469 0.839844 9.30469 1.25 9.03125 1.52344L5.77734 4.75L9.03125 8.00391Z' fill='black'/%3E%3C/svg%3E%0A");
+}
+.am5-modal-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  aspect-ratio: 1;
+  width: auto;
+  padding: 10px;
+  border: none;
+  background-color: white;
+  border-radius: 0;
+  cursor: pointer;
+  transition: filter 0.15s ease-in-out;
+}
+.am5-modal-close:hover {
+  filter: invert(1);
+}
