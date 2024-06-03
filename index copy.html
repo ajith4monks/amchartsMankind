@@ -1,0 +1,383 @@
+<head>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
+</head>
+<!-- Styles -->
+
+<style>
+  @import url(https://fonts.googleapis.com/css?family=Inter:100,200,300,regular,500,600,700,800,900);
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', 'Open Sans', sans-serif;
+  }
+  #chartdiv {
+    width: 100%;
+    height: 90vh;
+  }
+  #chartdiv .am5-modal {
+    inset: 0;
+    position: fixed;
+    width: 490px;
+    left: unset;
+    top: 0;
+    right: 0;
+    background-color: #081997;
+    z-index: 21;
+    transform: translate3d(0, 0, 0);
+    box-shadow: rgba(0, 0, 0, 0.45) 0px 0px 36px 0px;
+    transition: 0.44s;
+  }
+  #chartdiv .am5-modal.open .am5-modal-content {
+    padding: 30px;
+    transform: translate3d(0, 0, 0);
+    box-shadow: none;
+  }
+  #chartdiv .am5-modal-wrapper {
+    position: relative;
+    background-color: unset;
+  }
+  #chartdiv .am5-modal-curtain,
+  #chartdiv .am5-modal-wrapper::before {
+    display: none;
+  }
+
+  @media screen and (min-width: 650px) {
+    #chartdiv .am5-modal {
+      width: 330px;
+    }
+    #chartdiv .am5-modal .am5-modal-content {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      color: white;
+      background-color: unset;
+    }
+  }
+  .am5-modal-curtain {
+    display: none;
+  }
+
+  .am5-modal-close::before {
+    content: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.03125 8.00391C9.27734 8.27734 9.27734 8.6875 9.03125 8.93359C8.75781 9.20703 8.34766 9.20703 8.10156 8.93359L4.875 5.67969L1.62109 8.93359C1.34766 9.20703 0.9375 9.20703 0.691406 8.93359C0.417969 8.6875 0.417969 8.27734 0.691406 8.00391L3.94531 4.75L0.691406 1.49609C0.417969 1.22266 0.417969 0.8125 0.691406 0.566406C0.9375 0.292969 1.34766 0.292969 1.59375 0.566406L4.875 3.84766L8.12891 0.59375C8.375 0.320312 8.78516 0.320312 9.03125 0.59375C9.30469 0.839844 9.30469 1.25 9.03125 1.52344L5.77734 4.75L9.03125 8.00391Z' fill='black'/%3E%3C/svg%3E%0A");
+  }
+  .am5-modal-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    aspect-ratio: 1;
+    width: auto;
+    padding: 10px;
+    border: none;
+    background-color: white;
+    border-radius: 0;
+    cursor: pointer;
+    transition: filter 0.15s ease-in-out;
+  }
+  .am5-modal-close:hover {
+    filter: invert(1);
+  }
+</style>
+
+<!-- Resources -->
+<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/percent.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/geodata/continentsLow.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+
+<!-- Chart code -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    am5.ready(function () {
+      var rootDiv = document.getElementById('chartdiv')
+      var root = am5.Root.new('chartdiv')
+      root.setThemes([am5themes_Animated.new(root)])
+
+      var map = createMap(root)
+      var pointSeries = createPointSeries(root, map)
+      var colorSet = am5.ColorSet.new(root, { step: 2 })
+
+      setupMapEvents(map, pointSeries)
+      addDataToSeries(pointSeries)
+      console.log(pointSeries)
+      map.appear(1000, 100)
+      // Function to create the map
+      function createMap(root) {
+        return root.container.children.push(
+          am5map.MapChart.new(root, {
+            panX: 'none',
+            panY: 'none',
+            wheelX: 'none',
+            wheelY: 'none',
+            projection: am5map.geoNaturalEarth1(),
+          })
+        )
+      }
+
+      // Function to create point series
+      function createPointSeries(root, map) {
+        var polygonSeries = map.series.push(
+          am5map.MapPolygonSeries.new(root, {
+            geoJSON: am5geodata_continentsLow,
+            exclude: ['antarctica'],
+            fill: am5.color(0xffffff),
+            toggleKey: 'active',
+            interactive: true,
+          })
+        )
+
+        var pointSeries = map.series.push(
+          am5map.MapPointSeries.new(root, {
+            maskBullets: false,
+          })
+        )
+        pointSeries.bullets.push(function (root, series, dataItem) {
+          return createBullet(root, map, dataItem, colorSet)
+        })
+
+        return pointSeries
+      }
+
+      var modal = am5.Modal.new(root, {
+        content: "<div id='modalContent'></div>",
+      })
+
+      var modalSetup = false
+      var currentActiveBullet
+
+      function openModal(title, value) {
+        var modalContent = document.getElementById('modalContent')
+        // Add Dynamic data from here
+        modalContent.innerHTML = `
+          <div>
+            <h1>Latin America</h1>
+            <p>
+              Mankind FZ LLC -Dubai a wholly owned subsidiary of
+              Mankind (International office @Dubai). Presence in 18
+              markets globally with dedicated teams in 7 markets</p>
+          </div>
+          <h3>${title}</h3><p>${value}% of something.</p>
+        `
+
+        var cancelButton = document.createElement('button')
+        cancelButton.value = 'x'
+        cancelButton.classList.add('am5-modal-close')
+        cancelButton.addEventListener('click', function () {
+          modal.cancel()
+          map.goHome()
+          if (currentActiveBullet) {
+            currentActiveBullet.set('active', false)
+          }
+        })
+
+        modalContent.appendChild(cancelButton)
+
+        modalSetup = true
+        modal.open()
+
+        setTimeout(() => {
+          document.addEventListener('keydown', closeModalOnEsc)
+          document.addEventListener('click', closeModalOnClickOutside)
+        }, 100)
+      }
+
+      function closeModal() {
+        if (modal) {
+          map.goHome()
+          modal.close()
+          if (currentActiveBullet) {
+            currentActiveBullet.set('active', false)
+          }
+          document.removeEventListener('click', closeModalOnClickOutside)
+          document.removeEventListener('keydown', closeModalOnEsc)
+        }
+      }
+
+      function closeModalOnClickOutside(event) {
+        if (!document.querySelector('#modalContent').contains(event.target)) {
+          closeModal()
+          console.log('test')
+        }
+      }
+
+      function closeModalOnEsc(event) {
+        if (event.key === 'Escape') {
+          closeModal()
+        }
+      }
+      document
+        .querySelector('.am5-modal')
+        .classList.add(
+          'animate__animated,animate__fadeInRight,animate__delay-1s'
+        )
+      modal.events.on('opened', function (ev) {
+        document.querySelector('.am5-modal').classList.add('open')
+        document.querySelector('#modalContent').classList.add('open')
+        modal.getPrivate('curtain').classList.add('active')
+        modal.getPrivate('wrapper').classList.add('active')
+        modal.getPrivate('content').classList.add('active')
+      })
+      modal.events.on('closed', function (ev) {
+        document.querySelector('.am5-modal').classList.remove('open')
+      })
+      // Function to setup map events
+      function setupMapEvents(map, pointSeries) {
+        map.chartContainer.get('background').events.on('click', function () {
+          map.goHome()
+          pointSeries.show()
+          if (currentActiveBullet) {
+            currentActiveBullet.set('active', false)
+            closeModal()
+          }
+        })
+      }
+
+      // Function to add data to point series
+      function addDataToSeries(pointSeries) {
+        var data = [
+          {
+            title: 'United States',
+            name: 'United States',
+            latitude: 39.563353,
+            longitude: -99.316406,
+            width: 100,
+            height: 100,
+            value: 12,
+          },
+          {
+            title: 'European Union',
+            name: 'European Union',
+            latitude: 50.896104,
+            longitude: 19.160156,
+            width: 50,
+            height: 50,
+            value: 15,
+          },
+          {
+            title: 'Asia',
+            name: 'Asia',
+            latitude: 47.212106,
+            longitude: 103.183594,
+            width: 80,
+            height: 80,
+            value: 8,
+          },
+          {
+            title: 'Africa',
+            name: 'Africa',
+            latitude: 11.081385,
+            longitude: 21.621094,
+            width: 50,
+            height: 50,
+            value: 5,
+          },
+        ]
+
+        data.forEach(function (d) {
+          pointSeries.data.push({
+            geometry: { type: 'Point', coordinates: [d.longitude, d.latitude] },
+            title: d.title,
+            value: d.value,
+          })
+        })
+      }
+
+      // Function to create bullets
+      function createBullet(root, map, dataItem, colorSet) {
+        var value = dataItem.dataContext.value
+        var coordinates = dataItem.dataContext.geometry.coordinates
+        var title = dataItem.dataContext.title
+
+        var container = am5.Container.new(root, {
+          interactive: true,
+          setStateOnChildren: true,
+        })
+        var color = colorSet.next()
+        var radius = 15 + (value / 20) * 20
+
+        var circle = container.children.push(
+          am5.Circle.new(root, {
+            radius: radius,
+            fill: am5.color(0x0094d6),
+            fillOpacity: 0.6,
+            centerX: am5.p50,
+            centerY: am5.p50,
+            dy: -radius * 2,
+            cursorOverStyle: 'pointer',
+            toggleKey: 'active',
+          })
+        )
+
+        circle.events.on('click', function () {
+          if (!currentActiveBullet) {
+            map.zoomToGeoPoint(
+              { longitude: coordinates[0], latitude: coordinates[1] },
+              1.1,
+              true,
+              1500
+            )
+            openModal(title, value)
+          }
+        })
+
+        circle.states.create('hover', {
+          fill: am5.color(0x081997),
+          fillOpacity: 1,
+          scale: 1.2,
+        })
+
+        circle.states.create('active', {
+          fill: am5.color(0x081997),
+          fillOpacity: 1,
+        })
+
+        circle.on('active', function (active, target) {
+          if (currentActiveBullet) {
+            currentActiveBullet.set('active', false)
+          }
+          if (active) {
+            currentActiveBullet = target
+          } else {
+            currentActiveBullet = undefined
+          }
+        })
+
+        container.children.push(
+          am5.Line.new(root, {
+            stroke: am5.color(0x000),
+            height: 100,
+            centerY: am5.p0,
+            centerX: am5.p50,
+            dy: -radius * 2,
+            dx: 0,
+          })
+        )
+
+        container.children.push(
+          am5.Label.new(root, {
+            text: dataItem.dataContext.title,
+            fill: am5.color(0x000),
+            fontWeight: '500',
+            fontSize: '1em',
+            centerY: am5.p0,
+            dy: radius * 1,
+            dx: 0,
+          })
+        )
+
+        return am5.Bullet.new(root, {
+          sprite: container,
+        })
+      }
+    }) // end am5.ready()
+  })
+</script>
+
+<!-- HTML -->
+<div id="chartdiv" style="background-color: #edf2f6"></div>
